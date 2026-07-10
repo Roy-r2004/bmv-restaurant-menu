@@ -46,6 +46,11 @@ export function GuestHome() {
           <Link to="/admin" className="text-copper underline-offset-4 hover:underline">
             Sign in to the kitchen
           </Link>
+          {' · '}
+          BMV staff?{' '}
+          <Link to="/owner" className="text-copper underline-offset-4 hover:underline">
+            Provision a restaurant
+          </Link>
         </p>
       </div>
     </div>

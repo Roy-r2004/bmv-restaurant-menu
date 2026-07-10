@@ -53,39 +53,20 @@ export function AdminApp() {
     e.preventDefault()
     setError(null)
     const fd = new FormData(e.currentTarget)
-    const mode = String(fd.get('mode'))
     const username = String(fd.get('username') || '').trim()
     const password = String(fd.get('password') || '')
     setBusy(true)
     try {
-      if (mode === 'signup') {
-        const name = String(fd.get('name') || '').trim()
-        if (!name || !username || !password) {
-          throw new Error('Restaurant name, username, and password are required')
-        }
-        const created = await api.createBusiness({
-          name,
-          admin_username: username,
-          admin_password: password,
-        })
-        persist({
-          apiKey: created.api_key,
-          businessId: created.id,
-          businessName: created.name,
-          publicSlug: created.public_slug,
-        })
-      } else {
-        const logged = await api.login(username, password)
-        if (!logged.public_slug) {
-          throw new Error('This account has no public menu slug yet')
-        }
-        persist({
-          apiKey: logged.api_key,
-          businessId: logged.business_id,
-          businessName: logged.name,
-          publicSlug: logged.public_slug,
-        })
+      const logged = await api.login(username, password)
+      if (!logged.public_slug) {
+        throw new Error('This account has no public menu slug yet')
       }
+      persist({
+        apiKey: logged.api_key,
+        businessId: logged.business_id,
+        businessName: logged.name,
+        publicSlug: logged.public_slug,
+      })
     } catch (err) {
       setError(String((err as Error).message || err))
     } finally {
@@ -99,32 +80,13 @@ export function AdminApp() {
         <div className="mx-auto max-w-lg animate-rise">
           <p className="text-xs uppercase tracking-[0.35em] text-copper">Plate · Kitchen</p>
           <h1 className="mt-4 font-display text-5xl font-semibold leading-tight text-bone">
-            Open your tasting room.
+            Your restaurant kitchen.
           </h1>
           <p className="mt-4 text-bone-dim">
-            Sign in with your restaurant username and password. Guests never log in — they open your
-            public menu link directly.
+            Sign in with the username and password BMV set up for your store. Manage your menu here —
+            guests open your public link with no login.
           </p>
           <form onSubmit={onGate} className="mt-10 space-y-4 rounded-3xl border border-bone/10 bg-plate p-6">
-            <label className="block text-sm text-bone-dim">
-              Mode
-              <select
-                name="mode"
-                className="mt-1 w-full rounded-xl border border-bone/15 bg-ink px-3 py-2 text-bone"
-                defaultValue="login"
-              >
-                <option value="login">Sign in</option>
-                <option value="signup">Create restaurant</option>
-              </select>
-            </label>
-            <label className="block text-sm text-bone-dim">
-              Restaurant name <span className="text-bone/40">(create only)</span>
-              <input
-                name="name"
-                placeholder="Ember & Rye"
-                className="mt-1 w-full rounded-xl border border-bone/15 bg-ink px-3 py-2 text-bone"
-              />
-            </label>
             <label className="block text-sm text-bone-dim">
               Username
               <input
@@ -153,6 +115,12 @@ export function AdminApp() {
               {busy ? 'Opening…' : 'Enter kitchen'}
             </button>
           </form>
+          <p className="mt-6 text-sm text-bone-dim">
+            BMV staff provisioning a new restaurant?{' '}
+            <Link to="/owner" className="text-copper underline-offset-4 hover:underline">
+              Create an account
+            </Link>
+          </p>
         </div>
       </div>
     )
