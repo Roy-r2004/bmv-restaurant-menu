@@ -72,6 +72,41 @@ body {
   animation: float-soft 5s ease-in-out infinite;
 }
 
+@keyframes spin-y-slow {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+.animate-spin-y-slow {
+  animation: spin-y-slow 6s linear infinite;
+  transform-style: preserve-3d;
+}
+
+.perspective-\[600px\] {
+  perspective: 600px;
+}
+
+.rotate-y-8 {
+  transform: rotateY(8deg);
+}
+
+.rotate-y-12 {
+  transform: rotateY(12deg);
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 .grain::before {
   content: "";
   pointer-events: none;

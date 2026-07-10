@@ -508,6 +508,7 @@ function ItemEditor({
         </div>
         <DishViewer
           modelUrl={assetUrl(item.model_3d_url)}
+          imageUrl={assetUrl(item.image_url)}
           className="aspect-square w-full animate-float"
         />
       </div>
