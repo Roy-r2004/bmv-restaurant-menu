@@ -1,8 +1,6 @@
-import { Suspense, useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Center, Environment, OrbitControls, useGLTF, useTexture } from '@react-three/drei'
-import type { Group, Mesh } from 'three'
-import * as THREE from 'three'
+import { Suspense, useMemo } from 'react'
+import { Canvas } from '@react-three/fiber'
+import { Center, Environment, OrbitControls, useGLTF } from '@react-three/drei'
 
 function GlbModel({ url }: { url: string }) {
   const { scene } = useGLTF(url)
@@ -13,80 +11,56 @@ function GlbModel({ url }: { url: string }) {
   )
 }
 
-/** Always-on 3D plate: dish photo mapped onto a floating ceramic plate. */
-function PhotoPlate({ imageUrl }: { imageUrl: string }) {
-  const group = useRef<Group>(null)
-  const texture = useTexture(imageUrl)
-  texture.colorSpace = THREE.SRGBColorSpace
-  texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping
-
-  useFrame((state) => {
-    if (!group.current) return
-    const t = state.clock.elapsedTime
-    group.current.rotation.y = t * 0.45
-    group.current.position.y = Math.sin(t * 1.1) * 0.06
-    group.current.rotation.x = -0.35 + Math.sin(t * 0.7) * 0.04
-  })
-
-  return (
-    <group ref={group}>
-      {/* Rim / ceramic plate */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
-        <cylinderGeometry args={[1.15, 1.2, 0.08, 64]} />
-        <meshStandardMaterial color="#d8cfc3" metalness={0.15} roughness={0.35} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <circleGeometry args={[1.02, 64]} />
-        <meshStandardMaterial color="#f3ebe1" metalness={0.05} roughness={0.55} />
-      </mesh>
-      {/* Food surface */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.035, 0]}>
-        <circleGeometry args={[0.92, 64]} />
-        <meshStandardMaterial map={texture} roughness={0.7} metalness={0.05} />
-      </mesh>
-      {/* Soft shadow disc */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.12, 0]}>
-        <circleGeometry args={[0.95, 32]} />
-        <meshBasicMaterial color="#000000" transparent opacity={0.28} />
-      </mesh>
-    </group>
-  )
-}
-
-function FallbackOrb() {
-  const mesh = useRef<Mesh>(null)
-  useFrame((state) => {
-    if (!mesh.current) return
-    mesh.current.rotation.y = state.clock.elapsedTime * 0.8
-    mesh.current.rotation.x = Math.sin(state.clock.elapsedTime) * 0.2
-  })
-  return (
-    <mesh ref={mesh}>
-      <torusKnotGeometry args={[0.45, 0.14, 128, 16]} />
-      <meshStandardMaterial color="#c45c26" metalness={0.4} roughness={0.3} />
-    </mesh>
-  )
-}
-
-function Scene({ modelUrl, imageUrl }: { modelUrl: string | null; imageUrl: string | null }) {
-  if (modelUrl) return <GlbModel url={modelUrl} />
-  if (imageUrl) return <PhotoPlate imageUrl={imageUrl} />
-  return <FallbackOrb />
-}
-
+/**
+ * Real GLB viewer only. Photo-on-a-fake-plate was removed — it looked bad.
+ * Without a mesh, show the dish photo + a clear “generate real 3D” state.
+ */
 export function DishViewer({
   modelUrl,
   imageUrl,
   className = '',
   interactive = true,
+  onRequestGenerate,
+  generating = false,
 }: {
   modelUrl: string | null
   imageUrl?: string | null
   className?: string
-  /** Touch-drag orbit on phones; keep true for the hero stage. */
   interactive?: boolean
+  onRequestGenerate?: () => void
+  generating?: boolean
 }) {
-  const key = useMemo(() => `${modelUrl || ''}|${imageUrl || ''}`, [modelUrl, imageUrl])
+  const key = useMemo(() => modelUrl || 'none', [modelUrl])
+
+  if (!modelUrl) {
+    return (
+      <div
+        className={`relative overflow-hidden rounded-[2rem] border border-copper/25 bg-ink-soft ${className}`}
+      >
+        {imageUrl ? (
+          <img src={imageUrl} alt="" className="h-full w-full object-cover opacity-80" />
+        ) : (
+          <div className="flex h-full min-h-[16rem] items-center justify-center text-bone-dim">No photo</div>
+        )}
+        <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-ink via-ink/50 to-transparent p-5 text-center">
+          <p className="font-display text-xl text-bone">Real 3D mesh not ready</p>
+          <p className="mt-1 max-w-xs text-xs text-bone-dim">
+            Generated with fal.ai TripoSR / Meshy from the dish photo — not a flat image spin.
+          </p>
+          {onRequestGenerate && (
+            <button
+              type="button"
+              disabled={generating}
+              onClick={onRequestGenerate}
+              className="mt-3 rounded-full bg-copper px-4 py-2 text-sm font-medium text-ink disabled:opacity-50"
+            >
+              {generating ? 'Building 3D mesh… (30–90s)' : 'Generate real 3D'}
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -101,10 +75,9 @@ export function DishViewer({
       >
         <color attach="background" args={['#161412']} />
         <ambientLight intensity={0.65} />
-        <directionalLight position={[3, 5, 2]} intensity={1.35} color="#ffd2a8" castShadow />
-        <spotLight position={[-2, 4, 1]} intensity={0.5} color="#c45c26" />
+        <directionalLight position={[3, 5, 2]} intensity={1.35} color="#ffd2a8" />
         <Suspense fallback={null}>
-          <Scene modelUrl={modelUrl} imageUrl={imageUrl || null} />
+          <GlbModel url={modelUrl} />
           <Environment preset="warehouse" />
         </Suspense>
         <OrbitControls
@@ -114,7 +87,7 @@ export function DishViewer({
           minDistance={1.6}
           maxDistance={4}
           autoRotate
-          autoRotateSpeed={interactive ? 0.55 : 0.9}
+          autoRotateSpeed={0.55}
         />
       </Canvas>
       <p className="pointer-events-none absolute bottom-3 left-0 right-0 text-center text-[10px] uppercase tracking-[0.25em] text-bone/50">
@@ -124,23 +97,25 @@ export function DishViewer({
   )
 }
 
-/** Lightweight CSS 3D card for list rows — every item animates without extra WebGL. */
+/** Lightweight CSS 3D card for list rows. */
 export function DishThumb3D({
   imageUrl,
   active,
+  hasModel,
 }: {
   imageUrl: string | null
   active?: boolean
+  hasModel?: boolean
 }) {
   return (
-    <div className="perspective-[600px] h-16 w-16 shrink-0">
+    <div className="perspective-[600px] relative h-16 w-16 shrink-0">
       <div
-        className={`preserve-3d relative h-full w-full rounded-xl transition-transform duration-500 ${
-          active ? 'animate-spin-y-slow' : 'group-active:rotate-y-12 group-hover:rotate-y-8'
+        className={`relative h-full w-full rounded-xl transition-transform duration-500 ${
+          active && hasModel ? 'animate-spin-y-slow' : 'group-active:rotate-y-12'
         }`}
         style={{ transformStyle: 'preserve-3d' }}
       >
-        <div className="absolute inset-0 overflow-hidden rounded-xl border border-bone/10 bg-ink-soft backface-hidden">
+        <div className="absolute inset-0 overflow-hidden rounded-xl border border-bone/10 bg-ink-soft">
           {imageUrl ? (
             <img src={imageUrl} alt="" className="h-full w-full object-cover" />
           ) : (
@@ -148,6 +123,11 @@ export function DishThumb3D({
           )}
         </div>
       </div>
+      {hasModel && (
+        <span className="absolute -bottom-1 -right-1 rounded-full bg-copper px-1.5 py-0.5 text-[9px] font-medium text-ink">
+          3D
+        </span>
+      )}
     </div>
   )
 }

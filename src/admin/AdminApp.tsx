@@ -509,7 +509,24 @@ function ItemEditor({
         <DishViewer
           modelUrl={assetUrl(item.model_3d_url)}
           imageUrl={assetUrl(item.image_url)}
-          className="aspect-square w-full animate-float"
+          className="aspect-square w-full min-h-[14rem]"
+          generating={busy}
+          onRequestGenerate={
+            item.image_url
+              ? async () => {
+                  setBusy(true)
+                  onError(null)
+                  try {
+                    await api.generate3d(item.id, session.apiKey)
+                    await onSaved()
+                  } catch (e) {
+                    onError(String((e as Error).message || e))
+                  } finally {
+                    setBusy(false)
+                  }
+                }
+              : undefined
+          }
         />
       </div>
 
@@ -561,6 +578,7 @@ function ItemEditor({
           disabled={busy || !item.image_url}
           onClick={async () => {
             setBusy(true)
+            onError(null)
             try {
               await api.generate3d(item.id, session.apiKey)
               await onSaved()
@@ -572,7 +590,7 @@ function ItemEditor({
           }}
           className="rounded-full border border-sage/40 px-4 py-2 text-sm text-sage"
         >
-          Generate 3D (if provider set)
+          {busy ? 'Building mesh…' : 'Generate real 3D (fal TripoSR / Meshy)'}
         </button>
       </div>
     </div>

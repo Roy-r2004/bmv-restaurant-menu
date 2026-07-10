@@ -97,7 +97,7 @@ export function PublicMenuApp() {
             key={active?.id ?? 'empty'}
             modelUrl={assetUrl(active?.model_3d_url)}
             imageUrl={assetUrl(active?.image_url)}
-            className="aspect-[1/1] w-full sm:aspect-[5/4] lg:aspect-square"
+            className="aspect-[1/1] w-full min-h-[16rem] sm:aspect-[5/4] lg:aspect-square"
             interactive
           />
 
@@ -199,7 +199,11 @@ function MenuRow({
           active ? 'border-copper bg-plate' : 'border-bone/10 bg-ink-soft/60 hover:border-bone/20'
         }`}
       >
-        <DishThumb3D imageUrl={assetUrl(item.image_url)} active={active} />
+        <DishThumb3D
+          imageUrl={assetUrl(item.image_url)}
+          active={active}
+          hasModel={Boolean(item.model_3d_url)}
+        />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
             <p className="truncate font-display text-lg sm:text-xl">{item.name}</p>
