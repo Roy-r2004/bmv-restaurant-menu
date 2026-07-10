@@ -54,13 +54,40 @@ async function parse<T>(res: Response): Promise<T> {
 }
 
 export const api = {
-  createBusiness: (name: string, vertical = 'restaurant') =>
+  createBusiness: (body: {
+    name: string
+    vertical?: string
+    admin_username: string
+    admin_password: string
+    public_slug?: string
+  }) =>
     fetch(`${API_BASE}/businesses`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ name, vertical }),
+      body: JSON.stringify({ vertical: 'restaurant', ...body }),
     }).then((r) =>
-      parse<{ id: number; name: string; public_slug: string; api_key: string }>(r),
+      parse<{
+        id: number
+        name: string
+        public_slug: string
+        api_key: string
+        admin_username: string | null
+      }>(r),
+    ),
+
+  login: (username: string, password: string) =>
+    fetch(`${API_BASE}/auth/login`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ username, password }),
+    }).then((r) =>
+      parse<{
+        api_key: string
+        business_id: number
+        name: string
+        public_slug: string | null
+        vertical: string
+      }>(r),
     ),
 
   listMenuItems: (businessId: number, apiKey: string) =>

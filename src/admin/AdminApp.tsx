@@ -54,11 +54,20 @@ export function AdminApp() {
     setError(null)
     const fd = new FormData(e.currentTarget)
     const mode = String(fd.get('mode'))
+    const username = String(fd.get('username') || '').trim()
+    const password = String(fd.get('password') || '')
     setBusy(true)
     try {
-      if (mode === 'create') {
+      if (mode === 'signup') {
         const name = String(fd.get('name') || '').trim()
-        const created = await api.createBusiness(name)
+        if (!name || !username || !password) {
+          throw new Error('Restaurant name, username, and password are required')
+        }
+        const created = await api.createBusiness({
+          name,
+          admin_username: username,
+          admin_password: password,
+        })
         persist({
           apiKey: created.api_key,
           businessId: created.id,
@@ -66,11 +75,15 @@ export function AdminApp() {
           publicSlug: created.public_slug,
         })
       } else {
+        const logged = await api.login(username, password)
+        if (!logged.public_slug) {
+          throw new Error('This account has no public menu slug yet')
+        }
         persist({
-          apiKey: String(fd.get('apiKey') || '').trim(),
-          businessId: Number(fd.get('businessId')),
-          businessName: String(fd.get('businessName') || 'Kitchen').trim(),
-          publicSlug: String(fd.get('publicSlug') || '').trim(),
+          apiKey: logged.api_key,
+          businessId: logged.business_id,
+          businessName: logged.name,
+          publicSlug: logged.public_slug,
         })
       }
     } catch (err) {
@@ -89,8 +102,8 @@ export function AdminApp() {
             Open your tasting room.
           </h1>
           <p className="mt-4 text-bone-dim">
-            Create a restaurant tenant on Core, or paste an existing API key. Guests never see this
-            key — only your public slug.
+            Sign in with your restaurant username and password. Guests never log in — they open your
+            public menu link directly.
           </p>
           <form onSubmit={onGate} className="mt-10 space-y-4 rounded-3xl border border-bone/10 bg-plate p-6">
             <label className="block text-sm text-bone-dim">
@@ -98,14 +111,14 @@ export function AdminApp() {
               <select
                 name="mode"
                 className="mt-1 w-full rounded-xl border border-bone/15 bg-ink px-3 py-2 text-bone"
-                defaultValue="create"
+                defaultValue="login"
               >
-                <option value="create">Create new restaurant</option>
-                <option value="existing">Use existing API key</option>
+                <option value="login">Sign in</option>
+                <option value="signup">Create restaurant</option>
               </select>
             </label>
             <label className="block text-sm text-bone-dim">
-              Restaurant name (create)
+              Restaurant name <span className="text-bone/40">(create only)</span>
               <input
                 name="name"
                 placeholder="Ember & Rye"
@@ -113,32 +126,22 @@ export function AdminApp() {
               />
             </label>
             <label className="block text-sm text-bone-dim">
-              API key (existing)
+              Username
               <input
-                name="apiKey"
+                name="username"
+                autoComplete="username"
+                required
+                placeholder="ember"
                 className="mt-1 w-full rounded-xl border border-bone/15 bg-ink px-3 py-2 text-bone"
               />
             </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block text-sm text-bone-dim">
-                Business ID
-                <input
-                  name="businessId"
-                  className="mt-1 w-full rounded-xl border border-bone/15 bg-ink px-3 py-2 text-bone"
-                />
-              </label>
-              <label className="block text-sm text-bone-dim">
-                Public slug
-                <input
-                  name="publicSlug"
-                  className="mt-1 w-full rounded-xl border border-bone/15 bg-ink px-3 py-2 text-bone"
-                />
-              </label>
-            </div>
             <label className="block text-sm text-bone-dim">
-              Display name (existing)
+              Password
               <input
-                name="businessName"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
                 className="mt-1 w-full rounded-xl border border-bone/15 bg-ink px-3 py-2 text-bone"
               />
             </label>
